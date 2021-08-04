@@ -108,7 +108,7 @@ def user_registration():
         return response
 
 
-@app.route('/add-product/', methods=["POST"])
+@app.route('/add-item/', methods=["POST"])
 @jwt_required()
 def add_product():
     response = {}
@@ -130,12 +130,26 @@ def add_product():
         return response
 
 
-@app.route('/get-products/', methods=["GET"])
+@app.route('/view-cart/', methods=["GET"])
 def get_blogs():
     response = {}
     with sqlite3.connect("sale.db") as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM product")
+
+        posts = cursor.fetchall()
+
+    response['status_code'] = 200
+    response['data'] = posts
+    return response
+
+
+@app.route('/get-users/', methods=["GET"])
+def get_user():
+    response = {}
+    with sqlite3.connect("sale.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM user")
 
         posts = cursor.fetchall()
 
@@ -157,7 +171,7 @@ def delete_product(product_id):
     return jsonify(response)
 
 
-@app.route('/edit-product/<int:product_id>/', methods=["PUT"])
+@app.route('/edit-item/<int:product_id>/', methods=["PUT"])
 @jwt_required()
 def edit_product(product_id):
     response = {}
