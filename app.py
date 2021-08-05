@@ -4,6 +4,7 @@ import datetime
 from flask import Flask, request, jsonify
 from flask_jwt import JWT, jwt_required, current_identity
 from flask_cors import CORS
+from flask_mail import Mail, Message
 
 
 class User(object):
@@ -54,9 +55,10 @@ init_user_table()
 init_product_table()
 users = fetch_users()
 
+
 # WHAT DOES THIS MEAN ?
-username_table = { u.username: u for u in users }
-userid_table = { u.id: u for u in users }
+username_table = {u.username: u for u in users}
+userid_table = {u.id: u for u in users}
 
 
 def authenticate(username, password):
@@ -71,9 +73,14 @@ def identity(payload):
 
 
 app = Flask(__name__)
-app.debug = True
-app.config['SECRET_KEY'] = 'super-secret'
-CORS(app)
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = 'atheelahlifechoices@gmail.com'
+app.config['MAIL_PASSWORD'] = 'lifechoices1234'
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
+mail = Mail(app)
+
 
 jwt = JWT(app, authenticate, identity)
 
@@ -94,6 +101,7 @@ def user_registration():
         last_name = request.form['last_name']
         username = request.form['username']
         password = request.form['password']
+        email = request.form['email']
 
         with sqlite3.connect("sale.db") as conn:
             cursor = conn.cursor()
@@ -105,7 +113,12 @@ def user_registration():
             conn.commit()
             response["message"] = "success"
             response["status_code"] = 201
-        return response
+
+            if response['status_code'] == 201:
+                msg = Message('success', sender='atheelahlifechoices@gmail.com', recipients=[email])
+                msg.body = 'Your registration was successful.'
+                mail.send(msg)
+            return "Message sent"
 
 
 @app.route('/add-item/', methods=["POST"])
@@ -158,7 +171,7 @@ def get_user():
     return response
 
 
-@app.route("/delete-product/<int:product_id>")
+@app.route("/delete-item/<int:product_id>/")
 @jwt_required()
 def delete_product(product_id):
     response = {}
@@ -215,3 +228,8 @@ def get_post(post_id):
         response["data"] = cursor.fetchone()
 
     return jsonify(response)
+
+
+if __name__=='__main__':
+    app.debug=True
+    app.run()
