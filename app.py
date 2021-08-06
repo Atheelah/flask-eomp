@@ -8,12 +8,12 @@ from flask_cors import CORS
 from flask_mail import Mail, Message
 
 
-
 class User(object):
     def __init__(self, id, username, password):
         self.id = id
         self.username = username
         self.password = password
+
 
 # SALE DATABASE IS BEING CREATED HERE. CREATING A TABLE CALLED USER. WHERE A USER CAN REGISTER THEMSELVES
 def fetch_users():
@@ -33,7 +33,7 @@ def fetch_users():
 def init_user_table():
     conn = sqlite3.connect('sale.db')
     print("Opened database successfully")
-# THE APPROPRIATE FIELDS ARE ADDED HERE IN THE TABLE
+    # THE APPROPRIATE FIELDS ARE ADDED HERE IN THE TABLE
     conn.execute("CREATE TABLE IF NOT EXISTS user(user_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                  "first_name TEXT NOT NULL,"
                  "last_name TEXT NOT NULL,"
@@ -50,13 +50,14 @@ def init_product_table():
         conn.execute("CREATE TABLE IF NOT EXISTS product (id INTEGER PRIMARY KEY AUTOINCREMENT,"
                      "item TEXT NOT NULL,"
                      "price TEXT NOT NULL,"
+                     "category TEXT NOT NULL,"
                      "date_listed TEXT NOT NULL)")
     print("product table created successfully.")
 
 
-init_user_table()   # CALLING THE FUNCTION FOR THE USER TABLE
-init_product_table()   # CALLING THE FUNCTION FOR THE PRODUCT TABLE
-users = fetch_users()   # CALLING  THE FUNCTION TO FETCH THE USERS
+init_user_table()  # CALLING THE FUNCTION FOR THE USER TABLE
+init_product_table()  # CALLING THE FUNCTION FOR THE PRODUCT TABLE
+users = fetch_users()  # CALLING  THE FUNCTION TO FETCH THE USERS
 
 # THIS DISPLAYS THE USERS AND THE ID OF THE USERNAME
 username_table = {u.username: u for u in users}
@@ -71,7 +72,7 @@ def authenticate(username, password):
         return user
 
 
-# THIS CHECKS THE IDENTITY FI THE ABOVE
+# THIS CHECKS THE IDENTITY FIT THE ABOVE
 def identity(payload):
     user_id = payload['identity']
     return userid_table.get(user_id, None)
@@ -79,14 +80,17 @@ def identity(payload):
 
 # HERE AND EMAIL IS BEING CREATED (EMAIL SYNTAX)
 app = Flask(__name__)
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'   # THIS IS THE SERVER
-app.config['MAIL_PORT'] = 465   # THIS IS  THE PORT
-app.config['MAIL_USERNAME'] = 'atheelahlifechoices@gmail.com'   # THE USERNAME NEEDS TO BE INSERTED HERE (THE SENDERS)
-app.config['MAIL_PASSWORD'] = 'lifechoices1234'   # PASSWORD INSERTED HERE  (THE SENDERS DETAILS)
+app.debug = True
+app.config['SECRET_KEY'] = 'super-secret'
+app.config['JWT_EXPIRATION_DELTA'] = datetime.timedelta(seconds=4000)
+CORS(app)
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # THIS IS THE SERVER
+app.config['MAIL_PORT'] = 465  # THIS IS  THE PORT
+app.config['MAIL_USERNAME'] = 'atheelahlifechoices@gmail.com'  # THE USERNAME NEEDS TO BE INSERTED HERE (THE SENDERS)
+app.config['MAIL_PASSWORD'] = 'lifechoices1234'  # PASSWORD INSERTED HERE  (THE SENDERS DETAILS)
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
-
 
 jwt = JWT(app, authenticate, identity)
 
@@ -121,8 +125,8 @@ def user_registration():
             conn.commit()
             response["message"] = "success"
             response["status_code"] = 201
-
-# MY EMAIL IS ADDED IN HERE
+        # return response
+        #     MY EMAIL IS ADDED IN HERE
             if response['status_code'] == 201:
                 msg = Message('success', sender='atheelahlifechoices@gmail.com', recipients=[email])
                 msg.body = 'Your registration was successful.'
@@ -139,6 +143,7 @@ def add_product():
     if request.method == "POST":
         item = request.form['item']
         price = request.form['price']
+        category = request.form['category']
         date_listed = datetime.datetime.now()
 
         with sqlite3.connect('sale.db') as conn:
@@ -146,7 +151,8 @@ def add_product():
             cursor.execute("INSERT INTO product("
                            "item,"
                            "price,"
-                           "date_listed) VALUES(?, ?, ?)", (item, price, date_listed))
+                           "category,"
+                           "date_listed) VALUES(?, ?, ?, ?)", (item, price, category, date_listed))
             conn.commit()
             response["status_code"] = 201
             response['description'] = "item was added successfully"
@@ -216,6 +222,7 @@ def edit_product(product_id):
                     conn.commit()
                     response['message'] = "Update was successfully"
                     response['status_code'] = 200
+
             if incoming_data.get("price") is not None:
                 put_data['price'] = incoming_data.get('price')
 
@@ -225,6 +232,17 @@ def edit_product(product_id):
                     conn.commit()
 
                     response["price"] = "Product updated successfully"
+                    response["status_code"] = 200
+
+            if incoming_data.get("category") is not None:
+                put_data['category'] = incoming_data.get('category')
+
+                with sqlite3.connect('sale.db') as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE product SET category =? WHERE id=?", (put_data["category"], product_id))
+                    conn.commit()
+
+                    response["category"] = "Product updated successfully"
                     response["status_code"] = 200
     return response
 
@@ -247,5 +265,5 @@ def get_post(post_id):
 
 # THIS RUNS THE APPLICATION
 if __name__ == '__main__':
-    app.debug = True
     app.run()
+    app.debug = True
