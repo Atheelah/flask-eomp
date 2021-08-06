@@ -1,3 +1,4 @@
+# IMPORTING THE MODULES THAT ARE REQUIRED FOR THIS TASK
 import hmac
 import sqlite3
 import datetime
@@ -7,13 +8,14 @@ from flask_cors import CORS
 from flask_mail import Mail, Message
 
 
+
 class User(object):
     def __init__(self, id, username, password):
         self.id = id
         self.username = username
         self.password = password
 
-
+# SALE DATABASE IS BEING CREATED HERE. CREATING A TABLE CALLED USER. WHERE A USER CAN REGISTER THEMSELVES
 def fetch_users():
     with sqlite3.connect('sale.db') as conn:
         cursor = conn.cursor()
@@ -31,7 +33,7 @@ def fetch_users():
 def init_user_table():
     conn = sqlite3.connect('sale.db')
     print("Opened database successfully")
-
+# THE APPROPRIATE FIELDS ARE ADDED HERE IN THE TABLE
     conn.execute("CREATE TABLE IF NOT EXISTS user(user_id INTEGER PRIMARY KEY AUTOINCREMENT,"
                  "first_name TEXT NOT NULL,"
                  "last_name TEXT NOT NULL,"
@@ -44,6 +46,7 @@ def init_user_table():
 # TABLE CREATED FOR THE PRODUCTS(TABLE 2)
 def init_product_table():
     with sqlite3.connect('sale.db') as conn:
+        # THE APPROPRIATE FIELDS ARE ADDED HERE IN THE TABLE
         conn.execute("CREATE TABLE IF NOT EXISTS product (id INTEGER PRIMARY KEY AUTOINCREMENT,"
                      "item TEXT NOT NULL,"
                      "price TEXT NOT NULL,"
@@ -51,32 +54,35 @@ def init_product_table():
     print("product table created successfully.")
 
 
-init_user_table()
-init_product_table()
-users = fetch_users()
+init_user_table()   # CALLING THE FUNCTION FOR THE USER TABLE
+init_product_table()   # CALLING THE FUNCTION FOR THE PRODUCT TABLE
+users = fetch_users()   # CALLING  THE FUNCTION TO FETCH THE USERS
 
-
-# WHAT DOES THIS MEAN ?
+# THIS DISPLAYS THE USERS AND THE ID OF THE USERNAME
 username_table = {u.username: u for u in users}
-userid_table = {u.id: u for u in users}
+userid_table = {u.id: u for
+                u in users}
 
 
+# CREATING A FUNCTION TO CHECK THE USERNAME AND PASSWORD. TO CHECK IF IT CORRESPONDS
 def authenticate(username, password):
     user = username_table.get(username, None)
     if user and hmac.compare_digest(user.password.encode('utf-8'), password.encode('utf-8')):
         return user
 
 
+# THIS CHECKS THE IDENTITY FI THE ABOVE
 def identity(payload):
     user_id = payload['identity']
     return userid_table.get(user_id, None)
 
 
+# HERE AND EMAIL IS BEING CREATED (EMAIL SYNTAX)
 app = Flask(__name__)
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = 'atheelahlifechoices@gmail.com'
-app.config['MAIL_PASSWORD'] = 'lifechoices1234'
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'   # THIS IS THE SERVER
+app.config['MAIL_PORT'] = 465   # THIS IS  THE PORT
+app.config['MAIL_USERNAME'] = 'atheelahlifechoices@gmail.com'   # THE USERNAME NEEDS TO BE INSERTED HERE (THE SENDERS)
+app.config['MAIL_PASSWORD'] = 'lifechoices1234'   # PASSWORD INSERTED HERE  (THE SENDERS DETAILS)
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
@@ -85,12 +91,14 @@ mail = Mail(app)
 jwt = JWT(app, authenticate, identity)
 
 
+# THIS PROTECTS THE SIGHT AND CHECKS THE IDENTITY
 @app.route('/protected')
 @jwt_required()
 def protected():
     return '%s' % current_identity
 
 
+# THIS IS MY FUNCTION  TO REGISTER A USER.
 @app.route('/user-registration/', methods=["POST"])
 def user_registration():
     response = {}
@@ -114,6 +122,7 @@ def user_registration():
             response["message"] = "success"
             response["status_code"] = 201
 
+# MY EMAIL IS ADDED IN HERE
             if response['status_code'] == 201:
                 msg = Message('success', sender='atheelahlifechoices@gmail.com', recipients=[email])
                 msg.body = 'Your registration was successful.'
@@ -121,6 +130,7 @@ def user_registration():
             return "Message sent"
 
 
+# THIS IS MY FUNCTION TO ADD AN ITEM
 @app.route('/add-item/', methods=["POST"])
 @jwt_required()
 def add_product():
@@ -143,6 +153,7 @@ def add_product():
         return response
 
 
+# THIS IS MY FUNCTION TO VIEW MY CART
 @app.route('/view-cart/', methods=["GET"])
 def get_blogs():
     response = {}
@@ -157,6 +168,7 @@ def get_blogs():
     return response
 
 
+# THIS IS MY FUNCTION TO GET THE USERS
 @app.route('/get-users/', methods=["GET"])
 def get_user():
     response = {}
@@ -171,6 +183,7 @@ def get_user():
     return response
 
 
+# THIS IS MY FUNCTION TO DELETE AN ITEM
 @app.route("/delete-item/<int:product_id>/")
 @jwt_required()
 def delete_product(product_id):
@@ -184,6 +197,7 @@ def delete_product(product_id):
     return jsonify(response)
 
 
+# THIS IS MY FUNCTION TO ADD AN ITEM
 @app.route('/edit-item/<int:product_id>/', methods=["PUT"])
 @jwt_required()
 def edit_product(product_id):
@@ -215,6 +229,7 @@ def edit_product(product_id):
     return response
 
 
+# THIS IS MY FUNCTION TO GET A PRODUCT
 @app.route('/get-product/<int:product_id>/', methods=["GET"])
 def get_post(post_id):
     response = {}
@@ -230,6 +245,7 @@ def get_post(post_id):
     return jsonify(response)
 
 
-if __name__=='__main__':
-    app.debug=True
+# THIS RUNS THE APPLICATION
+if __name__ == '__main__':
+    app.debug = True
     app.run()
