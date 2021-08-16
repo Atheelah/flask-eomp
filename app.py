@@ -47,10 +47,11 @@ def init_user_table():
 def init_product_table():
     with sqlite3.connect('sale.db') as conn:
         # THE APPROPRIATE FIELDS ARE ADDED HERE IN THE TABLE
-        conn.execute("CREATE TABLE IF NOT EXISTS product (id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        conn.execute("CREATE TABLE IF NOT EXISTS product(id INTEGER PRIMARY KEY AUTOINCREMENT,"
                      "item TEXT NOT NULL,"
                      "price TEXT NOT NULL,"
                      "category TEXT NOT NULL,"
+                     "description TEXT NOT NULL,"
                      "date_listed TEXT NOT NULL)")
     print("product table created successfully.")
 
@@ -144,6 +145,7 @@ def add_product():
         item = request.form['item']
         price = request.form['price']
         category = request.form['category']
+        description = request.form['description']
         date_listed = datetime.datetime.now()
 
         with sqlite3.connect('sale.db') as conn:
@@ -152,7 +154,8 @@ def add_product():
                            "item,"
                            "price,"
                            "category,"
-                           "date_listed) VALUES(?, ?, ?, ?)", (item, price, category, date_listed))
+                           "description,"
+                           "date_listed) VALUES(?, ?, ?, ?, ?)", (item, price, category, description, date_listed))
             conn.commit()
             response["status_code"] = 201
             response['description'] = "item was added successfully"
@@ -242,7 +245,17 @@ def edit_product(product_id):
                     cursor.execute("UPDATE product SET category =? WHERE id=?", (put_data["category"], product_id))
                     conn.commit()
 
-                    response["category"] = "Product updated successfully"
+                    response["description"] = "Product updated successfully"
+                    response["status_code"] = 200
+            if incoming_data.get("description") is not None:
+                put_data['description'] = incoming_data.get('description')
+
+                with sqlite3.connect('sale.db') as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE product SET description =? WHERE id=?", (put_data["description"], product_id))
+                    conn.commit()
+
+                    response["description"] = "Product updated successfully"
                     response["status_code"] = 200
     return response
 
