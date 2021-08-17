@@ -52,6 +52,7 @@ def init_product_table():
                      "price TEXT NOT NULL,"
                      "category TEXT NOT NULL,"
                      "description TEXT NOT NULL,"
+                     "image TEXT NOT NULL,"
                      "date_listed TEXT NOT NULL)")
     print("product table created successfully.")
 
@@ -146,6 +147,7 @@ def add_product():
         price = request.form['price']
         category = request.form['category']
         description = request.form['description']
+        image = request.form['image']
         date_listed = datetime.datetime.now()
 
         with sqlite3.connect('sale.db') as conn:
@@ -155,7 +157,8 @@ def add_product():
                            "price,"
                            "category,"
                            "description,"
-                           "date_listed) VALUES(?, ?, ?, ?, ?)", (item, price, category, description, date_listed))
+                           "image,"
+                           "date_listed) VALUES(?, ?, ?, ?, ?, ?)", (item, price, category, description,image, date_listed))
             conn.commit()
             response["status_code"] = 201
             response['description'] = "item was added successfully"
@@ -256,6 +259,17 @@ def edit_product(product_id):
                     conn.commit()
 
                     response["description"] = "Product updated successfully"
+                    response["status_code"] = 200
+            if incoming_data.get("image") is not None:
+                put_data['image'] = incoming_data.get('image')
+
+                with sqlite3.connect('sale.db') as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE product SET image =? WHERE id=?",
+                                   (put_data["image"], product_id))
+                    conn.commit()
+
+                    response["image"] = "Product updated successfully"
                     response["status_code"] = 200
     return response
 
